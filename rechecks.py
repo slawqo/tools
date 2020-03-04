@@ -200,8 +200,8 @@ def plot_patch_rechecks(points):
 
 def plot_avg_rechecks_per_week(points):
     plot_points = get_avg_failures_per_week(points)
-    x_values = plot_points.keys()
-    y_values = plot_points.values()
+    x_values = list(plot_points.keys())
+    y_values = list(plot_points.values())
     plt.plot(x_values, y_values,
              label=('Average number of failed builds '
                     'before patch merge per week'))
