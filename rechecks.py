@@ -9,6 +9,7 @@ import subprocess
 import sys
 
 import matplotlib.pyplot as plt
+from prettytable import PrettyTable
 
 
 # Script based on Assaf Muller's script
@@ -49,6 +50,12 @@ def get_parser():
         '--plot',
         action='store_true',
         help='Generate graphs directly by script.')
+    parser.add_argument(
+        '--report-format',
+        default='human',
+        help=('Format in which results will be printed. '
+              'Default value: "human" '
+              'Possible values: "human", "csv"'))
     parser.add_argument(
         '--branch',
         default='master',
@@ -213,9 +220,24 @@ def plot_avg_rechecks_per_week(points):
 
 def print_avg_rechecks_per_week(points):
     plot_points = get_avg_failures_per_week(points)
+    if args.report_format == 'csv':
+        print_avg_as_csv(plot_points)
+    else:
+        print_avg_as_human_readable(plot_points)
+
+
+def print_avg_as_csv(points):
     print("Week of the year,Average number of failed builds")
-    for week, value in plot_points.items():
+    for week, value in points.items():
         print('%s,%s' % (week, value))
+
+
+def print_avg_as_human_readable(points):
+    table = PrettyTable()
+    table.field_names = ["Week of the year", "Rechecks"]
+    for week, value in points.items():
+        table.add_row([week, round(value, 2)])
+    print(table)
 
 
 if __name__ == '__main__':
