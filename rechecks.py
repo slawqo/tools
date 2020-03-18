@@ -43,6 +43,10 @@ def get_parser():
         '--newer-than',
         help='Only look at patches merged in the last so and so days.')
     parser.add_argument(
+        '--no-cache',
+        action='store_true',
+        help="Don't use cached results, always download new ones.")
+    parser.add_argument(
         '--verbose',
         action='store_true',
         help='Be more verbose.')
@@ -248,7 +252,9 @@ if __name__ == '__main__':
         query += ' -- -age:%dd' % int(args.newer_than)
 
     print("Query: %s" % query)
-    data = get_json_data_from_cache(query)
+    data = None
+    if not args.no_cache:
+        data = get_json_data_from_cache(query)
     if not data:
         data = get_json_data_from_query(query)
         put_json_data_in_cache(query, data)
