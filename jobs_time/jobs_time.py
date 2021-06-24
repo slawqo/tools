@@ -71,9 +71,9 @@ def get_changes(query):
 def get_latest_zuul_change_comments(change):
     messages = get_gerrit_json('changes/%s/messages' % change)
     for message in reversed(messages):
-        if message['author']['username'] == 'zuul' \
-           and ('Verified+1' in message['message'] or \
-                'Verified-1' in message['message']):
+        if message.get('author', {}).get('username') == 'zuul' \
+           and ('Verified+1' in message.get('message') or \
+                'Verified-1' in message.get('message')):
             print('Chose zuul comment from PS %s on change %s' % (
                 message['_revision_number'], change))
             return message['message'], get_comment_week(message)
