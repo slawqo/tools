@@ -43,6 +43,11 @@ def get_parser():
         '--newer-than',
         help='Only look at patches merged in the last so and so days.')
     parser.add_argument(
+        '--time-window',
+        default='week',
+        help='Count average number of recheck per "week" (default), "month" '
+             'or "year".')
+    parser.add_argument(
         '--no-cache',
         action='store_true',
         help="Don't use cached results, always download new ones.")
@@ -88,6 +93,10 @@ def get_json_data_from_cache(query):
 
 
 def put_json_data_in_cache(query, data):
+    try:
+        os.mkdir('cache')
+    except OSError:
+        pass
     query = _get_file_from_query(query)
     with open('cache/%s' % query, 'w') as query_file:
         json.dump(data, query_file)
@@ -178,6 +187,15 @@ def get_points_from_data(data):
 AVG_DATA_POINTS = None
 
 
+def get_avg_failures(points, time_window):
+    if time_window == 'week':
+        return get_avg_failures_per_week(points)
+    elif time_window == 'month':
+        return get_avg_failures_per_month(points)
+    else:
+        return get_avg_failures_per_year(points)
+
+
 def get_avg_failures_per_week(points):
     global AVG_DATA_POINTS
     if AVG_DATA_POINTS is None:
@@ -186,6 +204,44 @@ def get_avg_failures_per_week(points):
             point_date = datetime.date.fromtimestamp(point['merged'])
             point_year, point_week, _ = point_date.isocalendar()
             point_key = "%s-%s" % (point_year, point_week)
+            log_debug("Patch %s merged %s (week %s)" % (
+                point['id'], point_date, point_key))
+            if point_key not in data.keys():
+                data[point_key] = [point['build_failures']]
+            else:
+                data[point_key].append(point['build_failures'])
+
+        AVG_DATA_POINTS = {k: sum(v)/len(v) for k, v in data.items()}
+
+    return AVG_DATA_POINTS
+
+
+def get_avg_failures_per_month(points):
+    global AVG_DATA_POINTS
+    if AVG_DATA_POINTS is None:
+        data = {}
+        for point in points:
+            point_date = datetime.date.fromtimestamp(point['merged'])
+            point_key = "%s-%s" % (point_date.year, point_date.month)
+            log_debug("Patch %s merged %s (week %s)" % (
+                point['id'], point_date, point_key))
+            if point_key not in data.keys():
+                data[point_key] = [point['build_failures']]
+            else:
+                data[point_key].append(point['build_failures'])
+
+        AVG_DATA_POINTS = {k: sum(v)/len(v) for k, v in data.items()}
+
+    return AVG_DATA_POINTS
+
+
+def get_avg_failures_per_year(points):
+    global AVG_DATA_POINTS
+    if AVG_DATA_POINTS is None:
+        data = {}
+        for point in points:
+            point_date = datetime.date.fromtimestamp(point['merged'])
+            point_key = point_date.year
             log_debug("Patch %s merged %s (week %s)" % (
                 point['id'], point_date, point_key))
             if point_key not in data.keys():
@@ -209,36 +265,36 @@ def plot_patch_rechecks(points):
     plt.show()
 
 
-def plot_avg_rechecks_per_week(points):
-    plot_points = get_avg_failures_per_week(points)
+def plot_avg_rechecks(points, time_window):
+    plot_points = get_avg_failures(points, time_window)
     x_values = list(plot_points.keys())
     y_values = list(plot_points.values())
     plt.plot(x_values, y_values,
              label=('Average number of failed builds '
-                    'before patch merge per week'))
+                    'before patch merge per %s' % time_window))
     plt.xlabel('patch merge time')
     plt.ylabel('number of failed builds')
     plt.legend()
     plt.show()
 
 
-def print_avg_rechecks_per_week(points):
-    plot_points = get_avg_failures_per_week(points)
+def print_avg_rechecks(points, time_window):
+    plot_points = get_avg_failures(points, time_window)
     if args.report_format == 'csv':
-        print_avg_as_csv(plot_points)
+        print_avg_as_csv(plot_points, time_window)
     else:
-        print_avg_as_human_readable(plot_points)
+        print_avg_as_human_readable(plot_points, time_window)
 
 
-def print_avg_as_csv(points):
-    print("Week of the year,Average number of failed builds")
+def print_avg_as_csv(points, time_window):
+    print("%s,Average number of failed builds" % time_window)
     for week, value in points.items():
         print('%s,%s' % (week, value))
 
 
-def print_avg_as_human_readable(points):
+def print_avg_as_human_readable(points, time_window):
     table = PrettyTable()
-    table.field_names = ["Week of the year", "Rechecks"]
+    table.field_names = [time_window, "Rechecks"]
     for week, value in points.items():
         table.add_row([week, round(value, 2)])
     print(table)
@@ -269,5 +325,5 @@ if __name__ == '__main__':
 
     if args.plot:
         plot_patch_rechecks(points)
-        plot_avg_rechecks_per_week(points)
-    print_avg_rechecks_per_week(points)
+        plot_avg_rechecks(points, args.time_window)
+    print_avg_rechecks(points, args.time_window)
