@@ -70,7 +70,8 @@ def get_parser():
         default='master',
         help='Branch to check. For example stable/stein.')
     parser.add_argument(
-        'project',
+        '--project',
+        default=None,
         help='The OpenStack project to query. For example openstack/neutron.')
 
     return parser.parse_args()
@@ -302,8 +303,9 @@ def print_avg_as_human_readable(points, time_window):
 
 if __name__ == '__main__':
     args = get_parser()
-    query = "status:merged branch:%(branch)s project:%(project)s " % {
-            'branch': args.branch, 'project': args.project}
+    query = "status:merged branch:%s " % args.branch
+    if args.project:
+        query += 'project:%s ' % args.project
     if args.newer_than:
         query += ' -- -age:%dd' % int(args.newer_than)
 
