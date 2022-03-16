@@ -265,6 +265,7 @@ def plot_avg_rechecks(points, time_window):
     plt.xlabel('patch merge time')
     plt.ylabel('number of failed builds')
     plt.legend()
+    plt.xticks(x_values, x_values, rotation='vertical')
     plt.show()
 
 
