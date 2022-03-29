@@ -48,6 +48,12 @@ def get_parser():
         help='Count average number of recheck per "week" (default), "month" '
              'or "year".')
     parser.add_argument(
+        '--all-patches',
+        action='store_true',
+        help='If this is set, number of rechecks for each patch separately is '
+             'returned. Please note that when this is flag is used, '
+             '"--time-window" option has no effect.')
+    parser.add_argument(
         '--no-cache',
         action='store_true',
         help="Don't use cached results, always download new ones.")
@@ -180,7 +186,10 @@ def get_points_from_data(data):
         points.append(
             {'id': patch['id'],
              'merged': get_submission_timestamp(patch),
-             'build_failures': build_failures})
+             'build_failures': build_failures,
+             'project': patch['project'],
+             'url': patch['url'],
+             'subject': patch['subject']})
     points = sorted(points, key = lambda i: i['merged'])
     return points
 
@@ -266,6 +275,34 @@ def plot_patch_rechecks(points):
     plt.show()
 
 
+def print_patch_rechecks(points):
+    points = sorted(points, key=lambda x: x['build_failures'], reverse=True)
+    if args.report_format == 'csv':
+        print_rechecks_as_csv(points)
+    else:
+        print_rechecks_as_human_readable(points)
+
+
+def print_rechecks_as_csv(points):
+    print("%s,Average number of failed builds" % time_window)
+    for patch_data in points:
+        print('%s,%s,%s,%s' % (patch_data['subject'],
+                            patch_data['url'],
+                            patch_data['project'],
+                            patch_data['build_failures']))
+
+
+def print_rechecks_as_human_readable(points):
+    table = PrettyTable()
+    table.field_names = ['Subject', 'URL', 'Project', 'Rechecks']
+    for patch_data in points:
+        table.add_row(
+            [patch_data['subject'],
+             patch_data['url'],
+             patch_data['project'],
+             round(patch_data['build_failures'], 2)])
+    print(table)
+
 def plot_avg_rechecks(points, time_window):
     plot_points = get_avg_failures(points, time_window)
     x_values = list(plot_points.keys())
@@ -326,7 +363,11 @@ if __name__ == '__main__':
         print(error)
         sys.exit(1)
 
-    if args.plot:
-        plot_patch_rechecks(points)
-        plot_avg_rechecks(points, args.time_window)
-    print_avg_rechecks(points, args.time_window)
+    if args.all_patches:
+        if args.plot:
+            plot_patch_rechecks(points)
+        print_patch_rechecks(points)
+    else:
+        if args.plot:
+            plot_avg_rechecks(points, args.time_window)
+        print_avg_rechecks(points, args.time_window)
