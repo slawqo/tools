@@ -255,6 +255,17 @@ def get_avg_failures_per_year(points):
     return AVG_DATA_POINTS
 
 
+def plot_patch_rechecks(points):
+    x_values = [patch['id'] for patch in points]
+    y_values = [patch['build_failures'] for patch in points]
+    plt.plot(x_values, y_values,
+             label='Number of failed builds before patch merge')
+    plt.xlabel('patch merge time')
+    plt.ylabel('number of failed builds')
+    plt.legend()
+    plt.show()
+
+
 def plot_avg_rechecks(points, time_window):
     plot_points = get_avg_failures(points, time_window)
     x_values = list(plot_points.keys())
@@ -299,12 +310,11 @@ if __name__ == '__main__':
     if args.newer_than:
         query += ' -- -age:%dd' % int(args.newer_than)
 
+    print("Query: %s" % query)
     data = None
     if not args.no_cache:
-        log_debug("Using cached data...")
         data = get_json_data_from_cache(query)
     if not data:
-        log_debug("Fetching data from gerrit with query: %s" % query)
         data = get_json_data_from_query(query)
         put_json_data_in_cache(query, data)
 
@@ -317,5 +327,6 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if args.plot:
+        plot_patch_rechecks(points)
         plot_avg_rechecks(points, args.time_window)
     print_avg_rechecks(points, args.time_window)
