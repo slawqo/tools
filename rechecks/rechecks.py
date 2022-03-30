@@ -275,6 +275,13 @@ def plot_patch_rechecks(points):
     plt.show()
 
 
+def get_avg_number_or_rechecks(points):
+    build_failures = 0
+    for point in points:
+        build_failures += point['build_failures']
+    return build_failures / len(points)
+
+
 def print_patch_rechecks(points):
     points = sorted(points, key=lambda x: x['build_failures'], reverse=True)
     if args.report_format == 'csv':
@@ -295,7 +302,18 @@ def print_rechecks_as_csv(points):
 def print_rechecks_as_human_readable(points):
     table = PrettyTable()
     table.field_names = ['Subject', 'URL', 'Project', 'Rechecks']
+    avg_build_failures = get_avg_number_or_rechecks(points)
+    avg_marker_drawed = False
     for patch_data in points:
+        # Data is already sorted so we can draw marker in single place in table
+        if (not avg_marker_drawed and
+                patch_data['build_failures'] < avg_build_failures):
+            table.add_row(
+                ["AVERAGE NUMBER OF RECHECKS",
+                 "====================================",
+                 "=================",
+                 round(avg_build_failures, 2)])
+            avg_marker_drawed = True
         table.add_row(
             [patch_data['subject'],
              patch_data['url'],
