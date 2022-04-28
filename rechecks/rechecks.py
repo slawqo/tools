@@ -54,6 +54,13 @@ def get_parser():
              'returned. Please note that when this is flag is used, '
              '"--time-window" option has no effect.')
     parser.add_argument(
+        '--only-average',
+        action='store_true',
+        help='If this is set, only average number of rechecks in specified '
+             'time period will be returned. '
+             'When this is set, options like "--all-patches", "--plot" and '
+             '"--time-window" have no effect.')
+    parser.add_argument(
         '--no-cache',
         action='store_true',
         help="Don't use cached results, always download new ones.")
@@ -365,7 +372,7 @@ if __name__ == '__main__':
     if args.newer_than:
         query += ' -- -age:%dd' % int(args.newer_than)
 
-    print("Query: %s" % query)
+    log_debug("Query: %s" % query)
     data = None
     if not args.no_cache:
         data = get_json_data_from_cache(query)
@@ -380,6 +387,10 @@ if __name__ == '__main__':
                 'createdOn timestamp of the patches found is bogus.'
         print(error)
         sys.exit(1)
+
+    if args.only_average:
+        print(round(get_avg_number_or_rechecks(points), 2))
+        sys.exit(0)
 
     if args.all_patches:
         if args.plot:
