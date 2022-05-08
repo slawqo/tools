@@ -169,7 +169,7 @@ def get_points_from_data(data):
 
     points = []
     build_failed_regex = re.compile(
-        r"Build failed \(\w+ pipeline\)")
+        r"Build failed \((check|gate) pipeline\)")
     ps_regex = re.compile(r"Patch Set (\d+)\:")
 
     for patch in data:
